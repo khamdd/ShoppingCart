@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ShoppingCart.API.Data;
+using ShoppingCart.API.Interfaces;
+using ShoppingCart.API.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +11,7 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddScoped<IItem, ItemRepository>();
 
 builder.Services.AddDbContext<DataContext>(options =>
 {

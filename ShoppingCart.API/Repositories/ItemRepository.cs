@@ -1,4 +1,6 @@
-﻿using ShoppingCart.API.Data;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
+using ShoppingCart.API.Data;
 using ShoppingCart.API.Entities;
 using ShoppingCart.API.Interfaces;
 
@@ -13,29 +15,69 @@ namespace ShoppingCart.API.Repositories
 			context = _context;
 		}
 
-		public Task<Item> CreateItem(Item item)
+		public async Task<Item?> CreateItem(Item item)
 		{
-			throw new NotImplementedException();
+			await context.Items.AddAsync(item);
+			await context.SaveChangesAsync();
+			return item;
 		}
 
-		public Task<Item> DeleteItem(int id)
+		public async Task<Item?> DeleteItem(int id)
 		{
-			throw new NotImplementedException();
+			var item = await context.Items.FindAsync(id);
+			if (item == null)
+			{
+				return null;
+			}
+
+			context.Items.Remove(item);
+			await context.SaveChangesAsync();
+
+			return item;
 		}
 
-		public Task<Item> GetItem(int id)
+		public async Task<Item?> GetItem(int id)
 		{
-			throw new NotImplementedException();
+			var item = await context.Items.FindAsync(id);
+
+			if (item == null)
+			{
+				return null;
+			}
+
+			return item;
 		}
 
-		public Task<List<Item>> GetItems()
+		public async Task<List<Item>> GetItems()
 		{
-			throw new NotImplementedException();
+			return await context.Items.ToListAsync();
 		}
 
-		public Task<Item> UpdateItem(Item item)
+		public async Task<Item?> UpdateItem(Item item)
 		{
-			throw new NotImplementedException();
+			context.Entry(item).State = EntityState.Modified;
+			try
+			{
+				await context.SaveChangesAsync();
+			}
+			catch (DbUpdateConcurrencyException)
+			{
+				if (!ItemExists(item.Id))
+				{
+					return null;
+				}
+				else
+				{
+					throw;
+				}
+			}
+
+			return item;
+		}
+
+		private bool ItemExists(int id)
+		{
+			return context.Items.Any(e => e.Id == id);
 		}
 	}
 }

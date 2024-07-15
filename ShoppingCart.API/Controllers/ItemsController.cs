@@ -4,9 +4,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using ShoppingCart.API.Data;
 using ShoppingCart.API.Entities;
+using ShoppingCart.API.Interfaces;
 
 namespace ShoppingCart.API.Controllers
 {
@@ -14,27 +16,27 @@ namespace ShoppingCart.API.Controllers
     [ApiController]
     public class ItemsController : ControllerBase
     {
-        private readonly DataContext _context;
+		private readonly IItem itemRepository;
 
-        public ItemsController(DataContext context)
+		public ItemsController( IItem itemRepository)
         {
-            _context = context;
-        }
+			this.itemRepository = itemRepository;
+		}
 
         // GET: api/Items
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Item>>> GetItems()
         {
-            return await _context.Items.ToListAsync();
+            return await itemRepository.GetItems();
         }
 
         // GET: api/Items/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Item>> GetItem(int id)
+        public async Task<ActionResult<Item?>> GetItem(int id)
         {
-            var item = await _context.Items.FindAsync(id);
+            var item = await itemRepository.GetItem(id);
 
-            if (item == null)
+            if(item is null)
             {
                 return NotFound();
             }
@@ -45,32 +47,19 @@ namespace ShoppingCart.API.Controllers
         // PUT: api/Items/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
+        [ProducesResponseType(typeof(Item), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> PutItem(int id, Item item)
         {
-            if (id != item.Id)
-            {
-                return BadRequest();
-            }
+			if (id != item.Id)
+			{
+				return BadRequest();
+			}
 
-            _context.Entry(item).State = EntityState.Modified;
+            var updatedItem = await itemRepository.UpdateItem(item);
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ItemExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
+            return Ok(updatedItem);
         }
 
         // POST: api/Items
@@ -78,31 +67,22 @@ namespace ShoppingCart.API.Controllers
         [HttpPost]
         public async Task<ActionResult<Item>> PostItem(Item item)
         {
-            _context.Items.Add(item);
-            await _context.SaveChangesAsync();
+            await itemRepository.CreateItem(item);
 
-            return CreatedAtAction("GetItem", new { id = item.Id }, item);
+            return Created();
         }
 
         // DELETE: api/Items/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteItem(int id)
         {
-            var item = await _context.Items.FindAsync(id);
-            if (item == null)
-            {
-                return NotFound();
-            }
+                var item = await itemRepository.DeleteItem(id);
+                if (item == null)
+                {
+                    return NotFound();
+                }
 
-            _context.Items.Remove(item);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool ItemExists(int id)
-        {
-            return _context.Items.Any(e => e.Id == id);
+                return NoContent();
         }
     }
 }
